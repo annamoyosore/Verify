@@ -1,0 +1,8 @@
+{
+  "name": "gmail-dashboard",
+  "version": "1.0.0",
+  "dependencies": {
+    "googleapis": "^120.0.0",
+    "node-appwrite": "^8.1.0"
+  }
+}
