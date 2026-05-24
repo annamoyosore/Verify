@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Mailbox 2</title>
+
+<style>
+body{
+    background:#0b1220;
+    color:white;
+    font-family:Arial;
+    padding:20px;
+}
+
+.container{
+    max-width:900px;
+    margin:auto;
+}
+
+.card{
+    background:#1e293b;
+    padding:20px;
+    border-radius:16px;
+    margin-bottom:20px;
+}
+
+button{
+    padding:12px 16px;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:bold;
+    margin-right:10px;
+}
+
+.gen{background:#38bdf8;}
+.copy{background:#22c55e;}
+.back{background:#6366f1;color:white;}
+.refresh{background:#f59e0b;}
+
+input{
+    width:100%;
+    padding:12px;
+    margin-top:10px;
+    border-radius:10px;
+    border:none;
+    background:#0f172a;
+    color:white;
+}
+
+.mail{
+    background:#0f172a;
+    padding:15px;
+    border-radius:12px;
+    margin-top:10px;
+    border-left:4px solid #38bdf8;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="card">
+        <h2>📨 Mailbox 2</h2>
+
+        <button class="back" onclick="goBack()">← Back</button>
+
+        <input id="email" readonly />
+
+        <div style="margin-top:10px;">
+            <button class="gen" onclick="generateEmail()">Generate</button>
+            <button class="copy" onclick="copyEmail()">Copy</button>
+        </div>
+
+        <div style="margin-top:10px;">
+            <button class="refresh" onclick="loadInbox()">Refresh Inbox</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Inbox</h3>
+        <div id="inbox">No messages yet...</div>
+    </div>
+
+</div>
+
+<script>
+
+let email2 = "";
+let token2 = "";
+let password2 = "Temp12345!";
+
+// random generator
+function rand(len){
+    const c="abcdefghijklmnopqrstuvwxyz0123456789";
+    let r="";
+    for(let i=0;i<len;i++){
+        r+=c[Math.floor(Math.random()*c.length)];
+    }
+    return r;
+}
+
+// generate email
+async function generateEmail(){
+
+    const d = await fetch("https://api.mail.tm/domains");
+    const j = await d.json();
+
+    const domain = j["hydra:member"][0].domain;
+
+    email2 = rand(10)+"@"+domain;
+
+    document.getElementById("email").value = email2;
+
+    await fetch("https://api.mail.tm/accounts",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+            address:email2,
+            password:password2
+        })
+    });
+
+    const login = await fetch("https://api.mail.tm/token",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+            address:email2,
+            password:password2
+        })
+    });
+
+    const res = await login.json();
+    token2 = res.token;
+
+    document.getElementById("inbox").innerHTML =
+        "Inbox ready...";
+}
+
+// copy email
+function copyEmail(){
+    navigator.clipboard.writeText(email2);
+    alert("Copied!");
+}
+
+// load inbox
+async function loadInbox(){
+
+    if(!token2) return;
+
+    const res = await fetch("https://api.mail.tm/messages",{
+        headers:{
+            Authorization:`Bearer ${token2}`
+        }
+    });
+
+    const data = await res.json();
+
+    const inbox = document.getElementById("inbox");
+    const messages = data["hydra:member"];
+
+    if(!messages || messages.length===0){
+        inbox.innerHTML="No emails yet...";
+        return;
+    }
+
+    inbox.innerHTML="";
+
+    for(let m of messages){
+
+        const full = await fetch(
+            `https://api.mail.tm/messages/${m.id}`,
+            {
+                headers:{
+                    Authorization:`Bearer ${token2}`
+                }
+            }
+        );
+
+        const mail = await full.json();
+
+        inbox.innerHTML += `
+            <div class="mail">
+                <b>${mail.subject || "No Subject"}</b><br>
+                From: ${mail.from.address}<br><br>
+                ${mail.text || mail.html || ""}
+            </div>
+        `;
+    }
+}
+
+// back to mailbox1
+function goBack(){
+    window.location.href = "index.html";
+}
+
+// auto refresh
+setInterval(()=>{
+    if(token2) loadInbox();
+},8000);
+
+</script>
+
+</body>
+</html>
