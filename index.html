@@ -45,7 +45,6 @@ body{
     border-radius:18px;
     padding:25px;
     margin-bottom:20px;
-    box-shadow:0 0 20px rgba(0,0,0,0.3);
 }
 
 .email-box{
@@ -155,7 +154,7 @@ button{
         </div>
 
         <div class="timer">
-            Auto Refresh Inbox Enabled
+            Inbox auto-refresh enabled
         </div>
 
         <button class="refresh-btn" onclick="loadInbox()">
@@ -182,7 +181,7 @@ let currentEmail = "";
 let password = "Temp12345!";
 let token = "";
 
-// random generator
+// random string
 function randomString(length){
     const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
     let result = "";
@@ -197,7 +196,6 @@ async function generateEmail(){
 
     try{
 
-        // get domain
         const d = await fetch("https://api.mail.tm/domains");
         const djson = await d.json();
 
@@ -241,62 +239,66 @@ async function generateEmail(){
 
 // COPY EMAIL
 function copyEmail(){
+    if(!currentEmail) return;
     navigator.clipboard.writeText(currentEmail);
     alert("Copied!");
 }
 
-// LOAD INBOX
+// LOAD INBOX (FIXED — DOES NOT RESET EMAIL)
 async function loadInbox(){
 
-    if(!token){
-        alert("Generate email first");
-        return;
-    }
+    if(!token) return;
 
-    const res = await fetch("https://api.mail.tm/messages", {
-        headers:{
-            Authorization:`Bearer ${token}`
-        }
-    });
+    try{
 
-    const data = await res.json();
-
-    const inbox = document.getElementById("inbox");
-    const messages = data["hydra:member"];
-
-    if(!messages || messages.length === 0){
-        inbox.innerHTML = `<div class="empty">No emails yet...</div>`;
-        return;
-    }
-
-    inbox.innerHTML = "";
-
-    for(let msg of messages){
-
-        const full = await fetch(
-            `https://api.mail.tm/messages/${msg.id}`,
-            {
-                headers:{
-                    Authorization:`Bearer ${token}`
-                }
+        const res = await fetch("https://api.mail.tm/messages", {
+            headers:{
+                Authorization:`Bearer ${token}`
             }
-        );
+        });
 
-        const mail = await full.json();
+        const data = await res.json();
 
-        inbox.innerHTML += `
-            <div class="mail">
-                <h3>${mail.subject || "No Subject"}</h3>
-                <p><strong>From:</strong> ${mail.from.address}</p>
-                <p><strong>Date:</strong> ${new Date(mail.createdAt).toLocaleString()}</p>
-                <hr style="margin:10px 0;border-color:#334155;">
-                <p>${mail.text || mail.html || "No content"}</p>
-            </div>
-        `;
+        const inbox = document.getElementById("inbox");
+        const messages = data["hydra:member"];
+
+        if(!messages || messages.length === 0){
+            inbox.innerHTML = `<div class="empty">No emails yet...</div>`;
+            return;
+        }
+
+        inbox.innerHTML = "";
+
+        for(let msg of messages){
+
+            const full = await fetch(
+                `https://api.mail.tm/messages/${msg.id}`,
+                {
+                    headers:{
+                        Authorization:`Bearer ${token}`
+                    }
+                }
+            );
+
+            const mail = await full.json();
+
+            inbox.innerHTML += `
+                <div class="mail">
+                    <h3>${mail.subject || "No Subject"}</h3>
+                    <p><strong>From:</strong> ${mail.from.address}</p>
+                    <p><strong>Date:</strong> ${new Date(mail.createdAt).toLocaleString()}</p>
+                    <hr style="margin:10px 0;border-color:#334155;">
+                    <p>${mail.text || mail.html || "No content"}</p>
+                </div>
+            `;
+        }
+
+    }catch(err){
+        console.log(err);
     }
 }
 
-// auto refresh
+// AUTO REFRESH
 setInterval(()=>{
     if(token) loadInbox();
 }, 8000);
