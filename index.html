@@ -1,21 +1,307 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard</title>
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-<div class="container">
-    <h1>Dashboard</h1>
-    <p>Login with Gmail to manage your accounts.</p>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TempMail Inbox</title>
 
-    <!-- ✅ FIXED BUTTON -->
-    <a href="/auth">
-        <button>Continue with Gmail</button>
-    </a>
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial, Helvetica, sans-serif;
+}
+
+body{
+    background:#0f172a;
+    color:white;
+    min-height:100vh;
+    padding:20px;
+}
+
+.container{
+    max-width:1100px;
+    margin:auto;
+}
+
+.header{
+    text-align:center;
+    margin-bottom:30px;
+}
+
+.header h1{
+    font-size:42px;
+    color:#38bdf8;
+}
+
+.header p{
+    color:#cbd5e1;
+    margin-top:10px;
+}
+
+.card{
+    background:#1e293b;
+    border-radius:18px;
+    padding:25px;
+    margin-bottom:20px;
+    box-shadow:0 0 20px rgba(0,0,0,0.3);
+}
+
+.email-box{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:20px;
+}
+
+.email-input{
+    flex:1;
+    min-width:250px;
+    padding:15px;
+    border:none;
+    border-radius:12px;
+    font-size:16px;
+    background:#0f172a;
+    color:white;
+}
+
+button{
+    padding:15px 20px;
+    border:none;
+    border-radius:12px;
+    cursor:pointer;
+    font-size:15px;
+    font-weight:bold;
+}
+
+.generate-btn{
+    background:#38bdf8;
+    color:black;
+}
+
+.copy-btn{
+    background:#22c55e;
+    color:white;
+}
+
+.refresh-btn{
+    background:#f59e0b;
+    color:white;
+    width:100%;
+    margin-top:15px;
+}
+
+.inbox{
+    margin-top:20px;
+}
+
+.mail{
+    background:#0f172a;
+    padding:18px;
+    border-radius:14px;
+    margin-bottom:15px;
+    border-left:5px solid #38bdf8;
+}
+
+.mail h3{
+    color:#38bdf8;
+    margin-bottom:8px;
+}
+
+.mail p{
+    color:#cbd5e1;
+    margin-bottom:5px;
+}
+
+.empty{
+    text-align:center;
+    color:#94a3b8;
+    padding:30px;
+}
+
+.timer{
+    margin-top:15px;
+    font-size:18px;
+    color:#fbbf24;
+    text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="header">
+        <h1>TempMail Inbox</h1>
+        <p>Disposable Email using Mail.tm API</p>
+    </div>
+
+    <div class="card">
+
+        <h2>Your Temporary Email</h2>
+
+        <div class="email-box">
+            <input type="text" id="email" class="email-input" readonly />
+
+            <button class="generate-btn" onclick="generateEmail()">
+                Generate
+            </button>
+
+            <button class="copy-btn" onclick="copyEmail()">
+                Copy
+            </button>
+        </div>
+
+        <div class="timer">
+            Auto Refresh Inbox Enabled
+        </div>
+
+        <button class="refresh-btn" onclick="loadInbox()">
+            Refresh Inbox
+        </button>
+
+    </div>
+
+    <div class="card">
+
+        <h2>Inbox</h2>
+
+        <div class="inbox" id="inbox">
+            <div class="empty">No messages yet...</div>
+        </div>
+
+    </div>
 
 </div>
+
+<script>
+
+let currentEmail = "";
+let password = "Temp12345!";
+let token = "";
+
+// random generator
+function randomString(length){
+    const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+    let result = "";
+    for(let i=0;i<length;i++){
+        result += chars.charAt(Math.floor(Math.random()*chars.length));
+    }
+    return result;
+}
+
+// CREATE EMAIL
+async function generateEmail(){
+
+    try{
+
+        // get domain
+        const d = await fetch("https://api.mail.tm/domains");
+        const djson = await d.json();
+
+        const domain = djson["hydra:member"][0].domain;
+
+        currentEmail = randomString(10) + "@" + domain;
+
+        document.getElementById("email").value = currentEmail;
+
+        // create account
+        await fetch("https://api.mail.tm/accounts", {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body: JSON.stringify({
+                address: currentEmail,
+                password: password
+            })
+        });
+
+        // login
+        const login = await fetch("https://api.mail.tm/token", {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body: JSON.stringify({
+                address: currentEmail,
+                password: password
+            })
+        });
+
+        const ljson = await login.json();
+        token = ljson.token;
+
+        document.getElementById("inbox").innerHTML =
+            `<div class="empty">Inbox ready...</div>`;
+
+    }catch(err){
+        console.log(err);
+        alert("Failed to generate email");
+    }
+}
+
+// COPY EMAIL
+function copyEmail(){
+    navigator.clipboard.writeText(currentEmail);
+    alert("Copied!");
+}
+
+// LOAD INBOX
+async function loadInbox(){
+
+    if(!token){
+        alert("Generate email first");
+        return;
+    }
+
+    const res = await fetch("https://api.mail.tm/messages", {
+        headers:{
+            Authorization:`Bearer ${token}`
+        }
+    });
+
+    const data = await res.json();
+
+    const inbox = document.getElementById("inbox");
+    const messages = data["hydra:member"];
+
+    if(!messages || messages.length === 0){
+        inbox.innerHTML = `<div class="empty">No emails yet...</div>`;
+        return;
+    }
+
+    inbox.innerHTML = "";
+
+    for(let msg of messages){
+
+        const full = await fetch(
+            `https://api.mail.tm/messages/${msg.id}`,
+            {
+                headers:{
+                    Authorization:`Bearer ${token}`
+                }
+            }
+        );
+
+        const mail = await full.json();
+
+        inbox.innerHTML += `
+            <div class="mail">
+                <h3>${mail.subject || "No Subject"}</h3>
+                <p><strong>From:</strong> ${mail.from.address}</p>
+                <p><strong>Date:</strong> ${new Date(mail.createdAt).toLocaleString()}</p>
+                <hr style="margin:10px 0;border-color:#334155;">
+                <p>${mail.text || mail.html || "No content"}</p>
+            </div>
+        `;
+    }
+}
+
+// auto refresh
+setInterval(()=>{
+    if(token) loadInbox();
+}, 8000);
+
+</script>
+
 </body>
 </html>
