@@ -1,70 +1,41 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Virtual OTP Inbox</title>
-
+<title>SMS OTP Inbox</title>
 <style>
 body{
-    margin:0;
-    font-family:Arial;
     background:#0f172a;
     color:white;
+    font-family:Arial;
     padding:20px;
 }
-
 .container{
-    max-width:900px;
+    max-width:800px;
     margin:auto;
 }
-
 .card{
     background:#1e293b;
     padding:20px;
     border-radius:16px;
     margin-bottom:15px;
 }
-
-button{
-    padding:12px 16px;
-    border:none;
-    border-radius:10px;
-    cursor:pointer;
-    font-weight:bold;
-}
-
-.gen{
-    background:#38bdf8;
-}
-
-.sim{
-    background:#22c55e;
-    margin-left:10px;
-}
-
-.clear{
-    background:#f59e0b;
-    margin-left:10px;
-}
-
-.number{
-    font-size:22px;
-    margin-top:10px;
-    color:#38bdf8;
-}
-
-.otp-box{
-    font-size:40px;
-    color:#22c55e;
-    font-weight:bold;
-}
-
 .msg{
     background:#0f172a;
-    padding:12px;
+    padding:10px;
     margin-top:10px;
     border-left:4px solid #38bdf8;
+}
+.otp{
+    font-size:32px;
+    color:#22c55e;
+}
+button{
+    padding:10px 15px;
+    border:none;
+    border-radius:10px;
+    background:#38bdf8;
+    font-weight:bold;
+    cursor:pointer;
 }
 </style>
 </head>
@@ -74,96 +45,61 @@ button{
 <div class="container">
 
     <div class="card">
-        <h2>📱 Virtual OTP Inbox</h2>
-
-        <button class="gen" onclick="generateNumber()">Generate Number</button>
-        <button class="sim" onclick="simulateIncomingOTP()">Simulate OTP</button>
-        <button class="clear" onclick="clearInbox()">Clear</button>
-
-        <div class="number" id="number">No number generated</div>
+        <h2>📱 Vercel SMS OTP Inbox</h2>
+        <button onclick="loadInbox()">Refresh</button>
     </div>
 
     <div class="card">
         <h3>Latest OTP</h3>
-        <div class="otp-box" id="otp">Waiting...</div>
+        <div class="otp" id="otp">Waiting...</div>
     </div>
 
     <div class="card">
-        <h3>Inbox Messages</h3>
-        <div id="inbox">No messages yet...</div>
+        <h3>Messages</h3>
+        <div id="inbox"></div>
     </div>
 
 </div>
 
 <script>
 
-let virtualNumber = "";
-let inbox = [];
-
-// generate fake number
-function generateNumber(){
-    virtualNumber = "+1" + Math.floor(Math.random()*9000000000 + 1000000000);
-
-    document.getElementById("number").innerText =
-        "Your Virtual Number: " + virtualNumber;
-
-    inbox = [];
-    renderInbox();
+function extractOTP(text){
+    const match = text.match(/\b\d{4,8}\b/);
+    return match ? match[0] : null;
 }
 
-// simulate incoming OTP message
-function simulateIncomingOTP(){
+async function loadInbox(){
 
-    if(!virtualNumber){
-        alert("Generate number first");
-        return;
-    }
-
-    const otp = Math.floor(100000 + Math.random()*900000);
-
-    const message = {
-        from: "Facebook / Service",
-        text: "Your verification code is " + otp,
-        time: new Date().toLocaleTimeString(),
-        otp: otp
-    };
-
-    inbox.unshift(message);
-
-    document.getElementById("otp").innerText = otp;
-
-    renderInbox();
-}
-
-// render inbox
-function renderInbox(){
+    const res = await fetch("/api/sms");
+    const data = await res.json();
 
     const box = document.getElementById("inbox");
+    box.innerHTML = "";
 
-    if(inbox.length === 0){
-        box.innerHTML = "No messages yet...";
+    if(data.length === 0){
+        box.innerHTML = "No messages yet";
         return;
     }
 
-    box.innerHTML = "";
+    data.forEach(msg => {
 
-    inbox.forEach(msg => {
+        const otp = extractOTP(msg.body);
+
+        if(otp){
+            document.getElementById("otp").innerText = otp;
+        }
+
         box.innerHTML += `
             <div class="msg">
-                <b>${msg.from}</b><br>
-                ${msg.text}<br>
+                <b>From:</b> ${msg.from}<br>
+                ${msg.body}<br>
                 <small>${msg.time}</small>
             </div>
         `;
     });
 }
 
-// clear inbox
-function clearInbox(){
-    inbox = [];
-    document.getElementById("otp").innerText = "Waiting...";
-    renderInbox();
-}
+setInterval(loadInbox, 5000);
 
 </script>
 
