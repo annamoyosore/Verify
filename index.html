@@ -84,6 +84,11 @@ button{
     color:white;
 }
 
+.switch-btn{
+    background:#6366f1;
+    color:white;
+}
+
 .refresh-btn{
     background:#f59e0b;
     color:white;
@@ -142,6 +147,7 @@ button{
         <h2>Your Temporary Email</h2>
 
         <div class="email-box">
+
             <input type="text" id="email" class="email-input" readonly />
 
             <button class="generate-btn" onclick="generateEmail()">
@@ -151,6 +157,12 @@ button{
             <button class="copy-btn" onclick="copyEmail()">
                 Copy
             </button>
+
+            <!-- NEW BUTTON ADDED -->
+            <button class="switch-btn" onclick="goToMailbox2()">
+                Switch Mailbox
+            </button>
+
         </div>
 
         <div class="timer">
@@ -181,7 +193,7 @@ let currentEmail = "";
 let password = "Temp12345!";
 let token = "";
 
-// random string
+// random string generator
 function randomString(length){
     const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
     let result = "";
@@ -205,7 +217,6 @@ async function generateEmail(){
 
         document.getElementById("email").value = currentEmail;
 
-        // create account
         await fetch("https://api.mail.tm/accounts", {
             method:"POST",
             headers:{"Content-Type":"application/json"},
@@ -215,7 +226,6 @@ async function generateEmail(){
             })
         });
 
-        // login
         const login = await fetch("https://api.mail.tm/token", {
             method:"POST",
             headers:{"Content-Type":"application/json"},
@@ -244,7 +254,12 @@ function copyEmail(){
     alert("Copied!");
 }
 
-// LOAD INBOX (FIXED — DOES NOT RESET EMAIL)
+// SWITCH MAILBOX BUTTON FUNCTION
+function goToMailbox2(){
+    window.location.href = "mailbox2.html";
+}
+
+// LOAD INBOX (FIXED)
 async function loadInbox(){
 
     if(!token) return;
@@ -298,7 +313,7 @@ async function loadInbox(){
     }
 }
 
-// AUTO REFRESH
+// auto refresh
 setInterval(()=>{
     if(token) loadInbox();
 }, 8000);
