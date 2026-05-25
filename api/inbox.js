@@ -1,20 +1,48 @@
 const BASE = "https://api.sandmail.dev/v1";
 
 export default async function handler(req, res) {
+    const apiKey = process.env.SANDMAIL_API_KEY;
+
+    if (!apiKey) {
+        return res.status(500).json({
+            error: "Missing SANDMAIL_API_KEY in environment variables"
+        });
+    }
 
     try {
 
-        // 📩 CREATE INBOX
+        // =========================
+        // 📩 CREATE INBOX (GENERATE EMAIL)
+        // =========================
         if (req.method === "POST") {
 
             const response = await fetch(`${BASE}/inboxes`, {
                 method: "POST",
                 headers: {
-                    "Authorization": `Bearer ${process.env.SANDMAIL_API_KEY}`
-                }
+                    "Authorization": `Bearer ${apiKey}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({})
             });
 
-            const data = await response.json();
+            const text = await response.text();
+
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                return res.status(500).json({
+                    error: "Invalid JSON from SandMail API",
+                    raw: text
+                });
+            }
+
+            if (!response.ok) {
+                return res.status(response.status).json({
+                    error: "SandMail inbox creation failed",
+                    details: data
+                });
+            }
 
             return res.status(200).json({
                 email: data.email,
@@ -24,20 +52,44 @@ export default async function handler(req, res) {
             });
         }
 
+        // =========================
         // 📬 GET INBOX EMAILS
+        // =========================
         const email = req.query.email;
 
         if (!email) {
-            return res.status(400).json({ error: "Email required" });
+            return res.status(400).json({
+                error: "Email is required"
+            });
         }
 
-        const response = await fetch(`${BASE}/emails/${encodeURIComponent(email)}`, {
-            headers: {
-                "Authorization": `Bearer ${process.env.SANDMAIL_API_KEY}`
+        const response = await fetch(
+            `${BASE}/emails/${encodeURIComponent(email)}`,
+            {
+                headers: {
+                    "Authorization": `Bearer ${apiKey}`
+                }
             }
-        });
+        );
 
-        const data = await response.json();
+        const text = await response.text();
+
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            return res.status(500).json({
+                error: "Invalid JSON from SandMail inbox API",
+                raw: text
+            });
+        }
+
+        if (!response.ok) {
+            return res.status(response.status).json({
+                error: "Failed to fetch inbox",
+                details: data
+            });
+        }
 
         return res.status(200).json({
             emails: data.emails || []
@@ -45,7 +97,7 @@ export default async function handler(req, res) {
 
     } catch (err) {
         return res.status(500).json({
-            error: err.message
+            error: err.message || "Unknown server error"
         });
     }
 }
