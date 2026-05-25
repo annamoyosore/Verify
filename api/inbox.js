@@ -5,7 +5,7 @@ export default async function handler(req, res) {
 
     if (!apiKey) {
         return res.status(500).json({
-            error: "Missing SANDMAIL_API_KEY in Vercel environment"
+            error: "Missing SANDMAIL_API_KEY in Vercel environment variables"
         });
     }
 
@@ -16,7 +16,7 @@ export default async function handler(req, res) {
         // =========================
         if (req.method === "POST") {
 
-            const response = await fetch(`${BASE}/api/create`, {
+            const response = await fetch(`${BASE}/inboxes`, {
                 method: "POST",
                 headers: {
                     "X-API-Key": apiKey,
@@ -29,9 +29,9 @@ export default async function handler(req, res) {
             let data;
             try {
                 data = JSON.parse(text);
-            } catch (e) {
+            } catch {
                 return res.status(500).json({
-                    error: "Invalid JSON response from SandMail (create inbox)",
+                    error: "Invalid JSON response from SandMail",
                     raw: text
                 });
             }
@@ -62,7 +62,7 @@ export default async function handler(req, res) {
         }
 
         const response = await fetch(
-            `${BASE}/api/emails/${encodeURIComponent(email)}`,
+            `${BASE}/emails/${encodeURIComponent(email)}`,
             {
                 headers: {
                     "X-API-Key": apiKey
@@ -75,9 +75,9 @@ export default async function handler(req, res) {
         let data;
         try {
             data = JSON.parse(text);
-        } catch (e) {
+        } catch {
             return res.status(500).json({
-                error: "Invalid JSON response from SandMail (inbox)",
+                error: "Invalid JSON response from SandMail inbox",
                 raw: text
             });
         }
