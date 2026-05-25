@@ -9,7 +9,7 @@ export default async function handler(req, res) {
     try {
 
         // =========================
-        // ⚡ CREATE TEMP EMAIL
+        // ⚡ GENERATE EMAIL
         // =========================
         if (req.method === "POST") {
 
@@ -23,7 +23,7 @@ export default async function handler(req, res) {
         }
 
         // =========================
-        // 📬 LOAD EMAILS
+        // 📬 LOAD INBOX
         // =========================
         const email = req.query.email;
 
@@ -33,9 +33,9 @@ export default async function handler(req, res) {
             });
         }
 
-        // RAW API REQUEST
+        // CORRECT EMAIL FETCH
         const response = await fetch(
-            `${BASE}/emails/${encodeURIComponent(email)}`,
+            `${BASE}/emails?email=${encodeURIComponent(email)}`,
             {
                 headers: {
                     "X-API-Key": process.env.SANDMAIL_API_KEY
@@ -43,25 +43,9 @@ export default async function handler(req, res) {
             }
         );
 
-        const text = await response.text();
+        const data = await response.json();
 
-        let data;
-
-        try {
-            data = JSON.parse(text);
-        } catch {
-            return res.status(500).json({
-                error: "Invalid JSON from SandMail",
-                raw: text
-            });
-        }
-
-        if (!response.ok) {
-            return res.status(response.status).json({
-                error: "Failed to fetch inbox",
-                details: data
-            });
-        }
+        console.log("SANDMAIL EMAIL DATA:", data);
 
         return res.status(200).json({
             emails: data.emails || []
