@@ -95,16 +95,18 @@ button:hover {
 
 <script>
 
-let currentEmail = "";
+let currentEncrypted = "";
 
 // ======================
 // ⚡ GENERATE EMAIL
 // ======================
 async function generateEmail() {
+
     const inbox = document.getElementById("inbox");
     inbox.innerHTML = "Generating email...";
 
     try {
+
         const res = await fetch("/api/inbox", {
             method: "POST"
         });
@@ -113,20 +115,24 @@ async function generateEmail() {
 
         console.log("GENERATE RESPONSE:", data);
 
-        if (!res.ok || !data.email) {
-            inbox.innerHTML = `<div class="error">❌ Failed: ${data.error || "Unknown error"}</div>`;
+        if (!data.email) {
+            inbox.innerHTML = `❌ ${data.error || "Failed to generate email"}`;
             return;
         }
 
-        currentEmail = data.email;
+        // STORE ENCRYPTED TOKEN
+        currentEncrypted = data.encrypted;
 
-        document.getElementById("email").value = currentEmail;
+        // DISPLAY EMAIL
+        document.getElementById("email").value = data.email;
 
-        inbox.innerHTML = `✅ Email created: ${currentEmail}`;
+        inbox.innerHTML = `✅ Email ready: ${data.email}`;
 
-    } catch (err) {
+    } catch(err) {
+
         console.error(err);
-        inbox.innerHTML = `<div class="error">❌ Network error</div>`;
+
+        inbox.innerHTML = "❌ Network error";
     }
 }
 
@@ -134,21 +140,6 @@ async function generateEmail() {
 // 📋 COPY EMAIL
 // ======================
 function copyEmail() {
-    const email = document.getElementById("email").value;
-
-    if (!email) {
-        alert("No email generated");
-        return;
-    }
-
-    navigator.clipboard.writeText(email);
-    alert("Copied!");
-}
-
-// ======================
-// 📬 LOAD INBOX
-// ======================
-async function loadInbox() {
 
     const email = document.getElementById("email").value;
 
@@ -157,19 +148,35 @@ async function loadInbox() {
         return;
     }
 
+    navigator.clipboard.writeText(email);
+
+    alert("Copied!");
+}
+
+// ======================
+// 📬 LOAD INBOX
+// ======================
+async function loadInbox() {
+
+    if (!currentEncrypted) {
+        alert("Generate email first");
+        return;
+    }
+
     const inbox = document.getElementById("inbox");
+
     inbox.innerHTML = "Loading inbox...";
 
     try {
-        const res = await fetch(`/api/inbox?email=${encodeURIComponent(email)}`);
+
+        // USE ENCRYPTED TOKEN
+        const res = await fetch(
+            `/api/inbox?encrypted=${encodeURIComponent(currentEncrypted)}`
+        );
+
         const data = await res.json();
 
         console.log("INBOX RESPONSE:", data);
-
-        if (!res.ok) {
-            inbox.innerHTML = `<div class="error">❌ ${data.error || "Failed to load inbox"}</div>`;
-            return;
-        }
 
         if (!data.emails || data.emails.length === 0) {
             inbox.innerHTML = "No emails found";
@@ -178,19 +185,20 @@ async function loadInbox() {
 
         inbox.innerHTML = data.emails.map(m => `
             <div class="msg">
-                <b>From:</b> ${m.from || "Unknown"} <br>
-                <b>Subject:</b> ${m.subject || "No Subject"} <br>
+                <b>From:</b> ${m.from || "Unknown"}<br>
+                <b>Subject:</b> ${m.subject || "No Subject"}<br>
                 <div>${m.html || ""}</div>
             </div>
         `).join("");
 
-    } catch (err) {
+    } catch(err) {
+
         console.error(err);
-        inbox.innerHTML = `<div class="error">❌ Network error</div>`;
+
+        inbox.innerHTML = "❌ Failed loading inbox";
     }
 }
 
 </script>
-
 </body>
 </html>
