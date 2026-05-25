@@ -61,7 +61,7 @@ button:hover {
 
 <div class="container">
 
-<h2>📩 SandMail Temp Mail (REAL-TIME READY)</h2>
+<h2>📩 SandMail Temp Mail</h2>
 
 <input id="email" placeholder="Generated email will appear here" readonly>
 
@@ -78,25 +78,30 @@ button:hover {
 
 <script>
 
-const BASE = "https://verify-one-peach.vercel.app";
-
-// ⚡ GENERATE EMAIL (Instant)
+// ======================
+// ⚡ GENERATE EMAIL
+// ======================
 async function generateEmail() {
     const inbox = document.getElementById("inbox");
     inbox.innerHTML = "Generating email...";
 
     try {
-        const res = await fetch(`${BASE}/api/inbox`, {
+        const res = await fetch("/api/inbox", {
             method: "POST"
         });
 
         const data = await res.json();
 
-        if (!data.email) throw new Error("No email returned");
+        console.log("GENERATE RESPONSE:", data);
 
-        document.getElementById("email").value = data.email;
+        if (!data.email) {
+            throw new Error("No email returned");
+        }
 
-        localStorage.setItem("encrypted", data.encrypted);
+        const emailInput = document.getElementById("email");
+
+        emailInput.value = data.email;
+        emailInput.setAttribute("value", data.email);
 
         inbox.innerHTML = `✅ Email ready: ${data.email}`;
 
@@ -106,50 +111,51 @@ async function generateEmail() {
     }
 }
 
+// ======================
 // 📋 COPY EMAIL
+// ======================
 function copyEmail() {
     const email = document.getElementById("email").value;
+
     if (!email) return alert("No email generated");
 
     navigator.clipboard.writeText(email);
     alert("Copied!");
 }
 
+// ======================
 // 📬 LOAD INBOX
+// ======================
 async function loadInbox() {
     const email = document.getElementById("email").value;
-    const inbox = document.getElementById("inbox");
 
-    if (!email) {
-        inbox.innerHTML = "Generate email first";
+    console.log("EMAIL USED:", email);
+
+    if (!email || email.trim() === "") {
+        alert("Generate email first");
         return;
     }
 
+    const inbox = document.getElementById("inbox");
     inbox.innerHTML = "Loading inbox...";
 
-    try {
-        const res = await fetch(`${BASE}/api/inbox?email=${encodeURIComponent(email)}`);
-        const data = await res.json();
+    const res = await fetch(`/api/inbox?email=${encodeURIComponent(email)}`);
+    const data = await res.json();
 
-        if (!data.emails || data.emails.length === 0) {
-            inbox.innerHTML = "No emails found";
-            return;
-        }
+    console.log("INBOX RESPONSE:", data);
 
-        inbox.innerHTML = "<h3>Inbox</h3>" +
-        data.emails.map(m => `
-            <div class="msg">
-                <b>From:</b> ${m.from}<br>
-                <b>Subject:</b> ${m.subject}<br>
-                <b>Date:</b> ${m.date || ""}<br>
-                <div>${m.html || ""}</div>
-            </div>
-        `).join("");
-
-    } catch (err) {
-        console.error(err);
-        inbox.innerHTML = "❌ Error loading inbox";
+    if (!data.emails || data.emails.length === 0) {
+        inbox.innerHTML = "No emails found";
+        return;
     }
+
+    inbox.innerHTML = data.emails.map(m => `
+        <div class="msg">
+            <b>From:</b> ${m.from}<br>
+            <b>Subject:</b> ${m.subject}<br>
+            <div>${m.html || ""}</div>
+        </div>
+    `).join("");
 }
 
 </script>
