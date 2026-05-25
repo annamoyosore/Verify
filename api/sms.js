@@ -1,28 +1,58 @@
-let inbox = []; // temporary storage (upgrade later to DB)
+import { buffer } from "micro";
+import querystring from "querystring";
 
-export default function handler(req, res) {
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
 
-    // Twilio sends SMS here
-    if (req.method === "POST") {
+// ⚠️ In-memory store (upgrade to KV/DB for production)
+let inboxStore = {};
 
-        const from = req.body.From;
-        const body = req.body.Body;
+export default async function handler(req, res) {
 
-        inbox.unshift({
-            from,
-            body,
-            time: new Date().toISOString()
-        });
+  // 📩 Twilio webhook (incoming SMS)
+  if (req.method === "POST") {
 
-        console.log("SMS received:", from, body);
+    const rawBody = await buffer(req);
+    const parsed = querystring.parse(rawBody.toString());
 
-        return res.status(200).json({ success: true });
+    const from = parsed.From;
+    const to = parsed.To;
+    const body = parsed.Body;
+
+    if (!to) {
+      return res.status(400).send("Missing 'To' number");
     }
 
-    // Dashboard reads inbox here
-    if (req.method === "GET") {
-        return res.status(200).json(inbox);
+    // create inbox if not exists
+    if (!inboxStore[to]) {
+      inboxStore[to] = [];
     }
 
-    res.status(405).end();
+    inboxStore[to].unshift({
+      from,
+      body,
+      time: new Date().toISOString()
+    });
+
+    console.log("SMS RECEIVED:", { to, from, body });
+
+    return res.status(200).send("OK");
+  }
+
+  // 📦 Get inbox for a specific number
+  if (req.method === "GET") {
+
+    const number = req.query.number;
+
+    if (!number) {
+      return res.status(400).json({ error: "Missing number" });
+    }
+
+    return res.status(200).json(inboxStore[number] || []);
+  }
+
+  return res.status(405).send("Method not allowed");
 }
