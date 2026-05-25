@@ -46,15 +46,6 @@
         border-bottom: 1px solid #334155;
         padding: 10px 0;
     }
-
-    .email-box {
-        display: flex;
-        gap: 10px;
-    }
-
-    .email-box input {
-        flex: 1;
-    }
 </style>
 </head>
 
@@ -63,10 +54,10 @@
 <div class="container">
     <h2>📩 Temporary Email Inbox</h2>
 
-    <div class="email-box">
-        <input id="email" placeholder="Enter temp email (example@sandmail.dev)">
-    </div>
+    <!-- GENERATED EMAIL DISPLAY -->
+    <input id="email" placeholder="Your temp email will appear here" readonly>
 
+    <button onclick="generateEmail()">Generate Email</button>
     <button onclick="loadInbox()">Check Inbox</button>
 
     <div id="inbox" class="box">
@@ -75,9 +66,36 @@
 </div>
 
 <script>
+// 1. GENERATE RANDOM TEMP EMAIL
+function generateEmail() {
+    const random = Math.random().toString(36).substring(2, 10);
+    const email = random + "@sandmail.dev";
+
+    document.getElementById("email").value = email;
+
+    localStorage.setItem("tempEmail", email);
+
+    document.getElementById("inbox").innerHTML =
+        "<p>✅ Email generated: " + email + "</p>";
+}
+
+// 2. AUTO LOAD SAVED EMAIL
+window.onload = () => {
+    const saved = localStorage.getItem("tempEmail");
+    if (saved) {
+        document.getElementById("email").value = saved;
+    }
+};
+
+// 3. LOAD INBOX
 async function loadInbox() {
     const email = document.getElementById("email").value;
     const inbox = document.getElementById("inbox");
+
+    if (!email) {
+        inbox.innerHTML = "<p style='color:red'>Generate an email first</p>";
+        return;
+    }
 
     inbox.innerHTML = "<p>Loading...</p>";
 
