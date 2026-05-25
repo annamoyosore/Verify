@@ -2,12 +2,14 @@ import { SandMail } from "sandmail";
 
 const client = new SandMail(process.env.SANDMAIL_API_KEY);
 
+const BASE = "https://api.sandmail.dev/v1";
+
 export default async function handler(req, res) {
 
     try {
 
         // =========================
-        // ⚡ GENERATE TEMP EMAIL
+        // ⚡ CREATE TEMP EMAIL
         // =========================
         if (req.method === "POST") {
 
@@ -31,13 +33,38 @@ export default async function handler(req, res) {
             });
         }
 
-        // FETCH EMAILS FROM SANDMAIL
-        const response = await client.fetchEmails(email);
+        // RAW API REQUEST
+        const response = await fetch(
+            `${BASE}/emails/${encodeURIComponent(email)}`,
+            {
+                headers: {
+                    "X-API-Key": process.env.SANDMAIL_API_KEY
+                }
+            }
+        );
 
-        console.log("EMAIL RESPONSE:", response);
+        const text = await response.text();
+
+        let data;
+
+        try {
+            data = JSON.parse(text);
+        } catch {
+            return res.status(500).json({
+                error: "Invalid JSON from SandMail",
+                raw: text
+            });
+        }
+
+        if (!response.ok) {
+            return res.status(response.status).json({
+                error: "Failed to fetch inbox",
+                details: data
+            });
+        }
 
         return res.status(200).json({
-            emails: response.emails || response || []
+            emails: data.emails || []
         });
 
     } catch (err) {
@@ -45,7 +72,7 @@ export default async function handler(req, res) {
         console.error(err);
 
         return res.status(500).json({
-            error: err.message || "Failed to load inbox"
+            error: err.message || "Server error"
         });
     }
 }
