@@ -9,7 +9,7 @@ export default async function handler(req, res) {
     try {
 
         // =========================
-        // ⚡ GENERATE EMAIL
+        // ⚡ CREATE INBOX
         // =========================
         if (req.method === "POST") {
 
@@ -23,19 +23,18 @@ export default async function handler(req, res) {
         }
 
         // =========================
-        // 📬 LOAD INBOX
+        // 📬 GET EMAILS
         // =========================
-        const email = req.query.email;
+        const encrypted = req.query.encrypted;
 
-        if (!email) {
+        if (!encrypted) {
             return res.status(400).json({
-                error: "Email is required"
+                error: "Encrypted inbox token required"
             });
         }
 
-        // CORRECT EMAIL FETCH
         const response = await fetch(
-            `${BASE}/emails?email=${encodeURIComponent(email)}`,
+            `${BASE}/emails/${encodeURIComponent(encrypted)}`,
             {
                 headers: {
                     "X-API-Key": process.env.SANDMAIL_API_KEY
@@ -44,8 +43,6 @@ export default async function handler(req, res) {
         );
 
         const data = await response.json();
-
-        console.log("SANDMAIL EMAIL DATA:", data);
 
         return res.status(200).json({
             emails: data.emails || []
