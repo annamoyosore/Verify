@@ -2,57 +2,74 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SandMail Temp Mail</title>
 
 <style>
 body {
     font-family: Arial;
-    background:#0b1220;
-    color:white;
-    padding:20px;
+    background: #0b1220;
+    color: white;
+    padding: 20px;
 }
+
 .container {
-    max-width:600px;
-    margin:auto;
+    max-width: 600px;
+    margin: auto;
+}
+
+h2 {
+    text-align: center;
+    color: #38bdf8;
 }
 
 input, button {
-    width:100%;
-    padding:12px;
-    margin-top:10px;
-    border:none;
-    border-radius:6px;
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 6px;
+}
+
+input {
+    background: #111827;
+    color: white;
 }
 
 button {
-    background:#2563eb;
-    color:white;
-    cursor:pointer;
+    background: #2563eb;
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
 }
 
 button:hover {
-    background:#1d4ed8;
-}
-
-.box {
-    margin-top:20px;
-    background:#111827;
-    padding:15px;
-    border-radius:10px;
-}
-
-.msg {
-    border-bottom:1px solid #334155;
-    padding:10px 0;
+    background: #1d4ed8;
 }
 
 .row {
-    display:flex;
-    gap:10px;
+    display: flex;
+    gap: 10px;
 }
 
 .row button {
-    width:50%;
+    width: 50%;
+}
+
+.box {
+    margin-top: 20px;
+    background: #111827;
+    padding: 15px;
+    border-radius: 10px;
+}
+
+.msg {
+    border-bottom: 1px solid #334155;
+    padding: 10px 0;
+}
+
+.error {
+    color: #f87171;
 }
 </style>
 </head>
@@ -66,8 +83,8 @@ button:hover {
 <input id="email" placeholder="Generated email will appear here" readonly>
 
 <div class="row">
-<button onclick="generateEmail()">⚡ Generate Email</button>
-<button onclick="copyEmail()">📋 Copy</button>
+    <button onclick="generateEmail()">⚡ Generate Email</button>
+    <button onclick="copyEmail()">📋 Copy</button>
 </div>
 
 <button onclick="loadInbox()">📬 Load Inbox</button>
@@ -77,6 +94,8 @@ button:hover {
 </div>
 
 <script>
+
+let currentEmail = "";
 
 // ======================
 // ⚡ GENERATE EMAIL
@@ -94,20 +113,20 @@ async function generateEmail() {
 
         console.log("GENERATE RESPONSE:", data);
 
-        if (!data.email) {
-            throw new Error("No email returned");
+        if (!res.ok || !data.email) {
+            inbox.innerHTML = `<div class="error">❌ Failed: ${data.error || "Unknown error"}</div>`;
+            return;
         }
 
-        const emailInput = document.getElementById("email");
+        currentEmail = data.email;
 
-        emailInput.value = data.email;
-        emailInput.setAttribute("value", data.email);
+        document.getElementById("email").value = currentEmail;
 
-        inbox.innerHTML = `✅ Email ready: ${data.email}`;
+        inbox.innerHTML = `✅ Email created: ${currentEmail}`;
 
     } catch (err) {
         console.error(err);
-        inbox.innerHTML = "❌ Failed to generate email";
+        inbox.innerHTML = `<div class="error">❌ Network error</div>`;
     }
 }
 
@@ -117,7 +136,10 @@ async function generateEmail() {
 function copyEmail() {
     const email = document.getElementById("email").value;
 
-    if (!email) return alert("No email generated");
+    if (!email) {
+        alert("No email generated");
+        return;
+    }
 
     navigator.clipboard.writeText(email);
     alert("Copied!");
@@ -127,11 +149,10 @@ function copyEmail() {
 // 📬 LOAD INBOX
 // ======================
 async function loadInbox() {
+
     const email = document.getElementById("email").value;
 
-    console.log("EMAIL USED:", email);
-
-    if (!email || email.trim() === "") {
+    if (!email) {
         alert("Generate email first");
         return;
     }
@@ -139,23 +160,34 @@ async function loadInbox() {
     const inbox = document.getElementById("inbox");
     inbox.innerHTML = "Loading inbox...";
 
-    const res = await fetch(`/api/inbox?email=${encodeURIComponent(email)}`);
-    const data = await res.json();
+    try {
+        const res = await fetch(`/api/inbox?email=${encodeURIComponent(email)}`);
+        const data = await res.json();
 
-    console.log("INBOX RESPONSE:", data);
+        console.log("INBOX RESPONSE:", data);
 
-    if (!data.emails || data.emails.length === 0) {
-        inbox.innerHTML = "No emails found";
-        return;
+        if (!res.ok) {
+            inbox.innerHTML = `<div class="error">❌ ${data.error || "Failed to load inbox"}</div>`;
+            return;
+        }
+
+        if (!data.emails || data.emails.length === 0) {
+            inbox.innerHTML = "No emails found";
+            return;
+        }
+
+        inbox.innerHTML = data.emails.map(m => `
+            <div class="msg">
+                <b>From:</b> ${m.from || "Unknown"} <br>
+                <b>Subject:</b> ${m.subject || "No Subject"} <br>
+                <div>${m.html || ""}</div>
+            </div>
+        `).join("");
+
+    } catch (err) {
+        console.error(err);
+        inbox.innerHTML = `<div class="error">❌ Network error</div>`;
     }
-
-    inbox.innerHTML = data.emails.map(m => `
-        <div class="msg">
-            <b>From:</b> ${m.from}<br>
-            <b>Subject:</b> ${m.subject}<br>
-            <div>${m.html || ""}</div>
-        </div>
-    `).join("");
 }
 
 </script>
