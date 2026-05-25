@@ -158,14 +158,14 @@ button{
                 Copy
             </button>
 
-            <!-- NEW BUTTON ADDED -->
+            <!-- NAVIGATION BUTTONS (FIXED OPTION 1) -->
             <button class="switch-btn" onclick="goToMailbox2()">
                 Switch Mailbox
             </button>
- <button class="switch-btn" <a href="sandmail.html">
-  <button>sand mail 2</button>
-</a>
-            
+
+            <button class="switch-btn" onclick="goToSandmail()">
+                SandMail 2
+            </button>
 
         </div>
 
@@ -258,12 +258,16 @@ function copyEmail(){
     alert("Copied!");
 }
 
-// SWITCH MAILBOX BUTTON FUNCTION
+// NAVIGATION FIX (OPTION 1)
 function goToMailbox2(){
     window.location.href = "mailbox2.html";
 }
 
-// LOAD INBOX (FIXED)
+function goToSandmail(){
+    window.location.href = "sandmail.html";
+}
+
+// LOAD INBOX
 async function loadInbox(){
 
     if(!token) return;
