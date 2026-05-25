@@ -2,123 +2,114 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Temp Mail Inbox</title>
+<title>Temp Mail (SandMail v1)</title>
 
 <style>
-    body {
-        font-family: Arial, sans-serif;
-        background: #0b1220;
-        color: white;
-        padding: 20px;
-    }
+body {
+    font-family: Arial;
+    background:#0b1220;
+    color:white;
+    padding:20px;
+}
+.container { max-width:600px; margin:auto; }
 
-    .container {
-        max-width: 600px;
-        margin: auto;
-    }
+input, button {
+    width:100%;
+    padding:12px;
+    margin-top:10px;
+    border:none;
+    border-radius:6px;
+}
 
-    input, button {
-        padding: 12px;
-        width: 100%;
-        margin-top: 10px;
-        border-radius: 6px;
-        border: none;
-        font-size: 14px;
-    }
+button {
+    background:#2563eb;
+    color:white;
+    cursor:pointer;
+}
 
-    button {
-        background: #2563eb;
-        color: white;
-        cursor: pointer;
-    }
+button:hover { background:#1d4ed8; }
 
-    button:hover {
-        background: #1d4ed8;
-    }
+.box {
+    margin-top:20px;
+    background:#111827;
+    padding:15px;
+    border-radius:10px;
+}
 
-    .box {
-        margin-top: 20px;
-        padding: 15px;
-        background: #111827;
-        border-radius: 10px;
-    }
+.msg {
+    border-bottom:1px solid #334155;
+    padding:10px 0;
+}
 
-    .msg {
-        border-bottom: 1px solid #334155;
-        padding: 10px 0;
-    }
+.row {
+    display:flex;
+    gap:10px;
+}
 
-    .row {
-        display: flex;
-        gap: 10px;
-    }
-
-    .row button {
-        width: 50%;
-    }
+.row button {
+    width:50%;
+}
 </style>
 </head>
 
 <body>
 
 <div class="container">
-    <h2>📩 Temporary Email Inbox</h2>
 
-    <input id="email" placeholder="Click Generate Email" readonly>
+<h2>📩 SandMail Temp Inbox</h2>
 
-    <div class="row">
-        <button onclick="generateEmail()">Generate Email</button>
-        <button onclick="copyEmail()">Copy Email</button>
-    </div>
+<input id="email" placeholder="Generate email first" readonly>
 
-    <button onclick="loadInbox()">Check Inbox</button>
+<div class="row">
+<button onclick="generateEmail()">Generate Email</button>
+<button onclick="copyEmail()">Copy Email</button>
+</div>
 
-    <div id="inbox" class="box">
-        <p>No messages yet</p>
-    </div>
+<button onclick="loadInbox()">Load Inbox</button>
+
+<div id="inbox" class="box">No messages yet</div>
+
 </div>
 
 <script>
 
-const BASE_URL = "https://verify-one-peach.vercel.app";
+const BASE = "https://verify-one-peach.vercel.app";
 
-
-// 🔥 GENERATE EMAIL
+// 🔥 CREATE INBOX
 async function generateEmail() {
     const inbox = document.getElementById("inbox");
-    inbox.innerHTML = "Generating email...";
+    inbox.innerHTML = "Generating...";
 
     try {
-        const res = await fetch(`${BASE_URL}/api/generate-email`);
-
-        if (!res.ok) throw new Error("Failed API");
+        const res = await fetch(`${BASE}/api/inbox`, {
+            method: "POST"
+        });
 
         const data = await res.json();
 
+        if (!data.email) throw new Error("No email returned");
+
         document.getElementById("email").value = data.email;
 
-        inbox.innerHTML = `<p>✅ Email created: ${data.email}</p>`;
+        // store encrypted for future use
+        localStorage.setItem("encrypted", data.encrypted);
+
+        inbox.innerHTML = "✅ Email generated";
 
     } catch (err) {
         console.error(err);
-        inbox.innerHTML = "<p style='color:red'>Failed to generate mail</p>";
+        inbox.innerHTML = "❌ Failed to generate mail";
     }
 }
-
 
 // 📋 COPY EMAIL
 function copyEmail() {
     const email = document.getElementById("email").value;
-
-    if (!email) {
-        alert("No email generated yet");
-        return;
-    }
+    if (!email) return alert("No email");
 
     navigator.clipboard.writeText(email);
-    alert("Email copied!");
+    alert("Copied!");
 }
-
 
 // 📩 LOAD INBOX
 async function loadInbox() {
@@ -126,32 +117,31 @@ async function loadInbox() {
     const inbox = document.getElementById("inbox");
 
     if (!email) {
-        inbox.innerHTML = "<p style='color:red'>Generate email first</p>";
+        inbox.innerHTML = "Generate email first";
         return;
     }
 
     inbox.innerHTML = "Loading inbox...";
 
     try {
-        const res = await fetch(
-            `${BASE_URL}/api/inbox?email=${encodeURIComponent(email)}`
-        );
+        const res = await fetch(`${BASE}/api/inbox?email=${encodeURIComponent(email)}`);
 
         const data = await res.json();
 
-        if (!data.messages || data.messages.length === 0) {
-            inbox.innerHTML = "<p>No messages found</p>";
+        if (!data.emails || data.emails.length === 0) {
+            inbox.innerHTML = "No emails found";
             return;
         }
 
         let html = "<h3>Inbox</h3>";
 
-        data.messages.forEach(msg => {
+        data.emails.forEach(m => {
             html += `
                 <div class="msg">
-                    <b>From:</b> ${msg.from || "Unknown"} <br>
-                    <b>Subject:</b> ${msg.subject || "No subject"} <br>
-                    <p>${msg.text || ""}</p>
+                    <b>From:</b> ${m.from}<br>
+                    <b>Subject:</b> ${m.subject}<br>
+                    <b>Date:</b> ${m.date}<br>
+                    <div>${m.html || ""}</div>
                 </div>
             `;
         });
@@ -160,7 +150,7 @@ async function loadInbox() {
 
     } catch (err) {
         console.error(err);
-        inbox.innerHTML = "<p style='color:red'>Error loading inbox</p>";
+        inbox.innerHTML = "❌ Error loading inbox";
     }
 }
 
