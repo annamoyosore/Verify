@@ -1,0 +1,9 @@
+{
+  "name": "sandmail-tempmail",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "sandmail": "^1.0.0"
+  }
+}
