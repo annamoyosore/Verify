@@ -3,9 +3,10 @@ const BASE = "https://api.sandmail.dev/v1";
 export default async function handler(req, res) {
     const apiKey = process.env.SANDMAIL_API_KEY;
 
+    // 🔐 HARD CHECK (prevents silent failure)
     if (!apiKey) {
         return res.status(500).json({
-            error: "Missing SANDMAIL_API_KEY in environment variables"
+            error: "SANDMAIL_API_KEY is missing in Vercel environment variables"
         });
     }
 
@@ -25,21 +26,23 @@ export default async function handler(req, res) {
                 body: JSON.stringify({})
             });
 
-            const text = await response.text();
+            const rawText = await response.text();
 
             let data;
             try {
-                data = JSON.parse(text);
+                data = JSON.parse(rawText);
             } catch (e) {
                 return res.status(500).json({
-                    error: "Invalid JSON from SandMail API",
-                    raw: text
+                    error: "Invalid JSON from SandMail (create inbox)",
+                    raw: rawText
                 });
             }
 
+            // 🔴 IMPORTANT: SHOW REAL API ERROR
             if (!response.ok) {
                 return res.status(response.status).json({
-                    error: "SandMail inbox creation failed",
+                    error: "SandMail rejected inbox creation",
+                    status: response.status,
                     details: data
                 });
             }
@@ -72,21 +75,22 @@ export default async function handler(req, res) {
             }
         );
 
-        const text = await response.text();
+        const rawText = await response.text();
 
         let data;
         try {
-            data = JSON.parse(text);
+            data = JSON.parse(rawText);
         } catch (e) {
             return res.status(500).json({
-                error: "Invalid JSON from SandMail inbox API",
-                raw: text
+                error: "Invalid JSON from SandMail (fetch inbox)",
+                raw: rawText
             });
         }
 
         if (!response.ok) {
             return res.status(response.status).json({
                 error: "Failed to fetch inbox",
+                status: response.status,
                 details: data
             });
         }
