@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Temp Mail Inbox</title>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #0b1220;
+        color: white;
+        padding: 20px;
+    }
+
+    .container {
+        max-width: 600px;
+        margin: auto;
+    }
+
+    input, button {
+        padding: 12px;
+        width: 100%;
+        margin-top: 10px;
+        border-radius: 6px;
+        border: none;
+    }
+
+    button {
+        background: #2563eb;
+        color: white;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background: #1d4ed8;
+    }
+
+    .box {
+        margin-top: 20px;
+        padding: 15px;
+        background: #111827;
+        border-radius: 10px;
+    }
+
+    .msg {
+        border-bottom: 1px solid #334155;
+        padding: 10px 0;
+    }
+
+    .email-box {
+        display: flex;
+        gap: 10px;
+    }
+
+    .email-box input {
+        flex: 1;
+    }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <h2>📩 Temporary Email Inbox</h2>
+
+    <div class="email-box">
+        <input id="email" placeholder="Enter temp email (example@sandmail.dev)">
+    </div>
+
+    <button onclick="loadInbox()">Check Inbox</button>
+
+    <div id="inbox" class="box">
+        <p>No messages loaded yet</p>
+    </div>
+</div>
+
+<script>
+async function loadInbox() {
+    const email = document.getElementById("email").value;
+    const inbox = document.getElementById("inbox");
+
+    inbox.innerHTML = "<p>Loading...</p>";
+
+    try {
+        const res = await fetch(
+            "https://verify-one-peach.vercel.app/api/inbox?email=" + encodeURIComponent(email)
+        );
+
+        const data = await res.json();
+
+        if (!data.messages || data.messages.length === 0) {
+            inbox.innerHTML = "<p>No messages found</p>";
+            return;
+        }
+
+        let html = "<h3>Inbox</h3>";
+
+        data.messages.forEach(msg => {
+            html += `
+                <div class="msg">
+                    <b>From:</b> ${msg.from || "Unknown"} <br>
+                    <b>Subject:</b> ${msg.subject || "No subject"} <br>
+                    <p>${msg.text || ""}</p>
+                </div>
+            `;
+        });
+
+        inbox.innerHTML = html;
+
+    } catch (err) {
+        inbox.innerHTML = "<p style='color:red'>Error loading inbox</p>";
+    }
+}
+</script>
+
+</body>
+</html>
