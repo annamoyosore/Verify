@@ -7,7 +7,7 @@ export default async function handler(req, res) {
     try {
 
         // =========================
-        // ⚡ GENERATE EMAIL
+        // ⚡ GENERATE TEMP EMAIL
         // =========================
         if (req.method === "POST") {
 
@@ -21,7 +21,7 @@ export default async function handler(req, res) {
         }
 
         // =========================
-        // 📬 LOAD INBOX
+        // 📬 LOAD EMAILS
         // =========================
         const email = req.query.email;
 
@@ -31,10 +31,13 @@ export default async function handler(req, res) {
             });
         }
 
-        const response = await client.getEmails(email);
+        // FETCH EMAILS FROM SANDMAIL
+        const response = await client.fetchEmails(email);
+
+        console.log("EMAIL RESPONSE:", response);
 
         return res.status(200).json({
-            emails: response.emails || []
+            emails: response.emails || response || []
         });
 
     } catch (err) {
@@ -42,7 +45,7 @@ export default async function handler(req, res) {
         console.error(err);
 
         return res.status(500).json({
-            error: err.message || "SandMail server error"
+            error: err.message || "Failed to load inbox"
         });
     }
 }
