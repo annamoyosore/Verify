@@ -1,134 +1,76 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>Temp Mail Inbox</title>
+<title>Sand Temp Mail</title>
 
 <style>
-    body {
-        font-family: Arial, sans-serif;
-        background: #0b1220;
-        color: white;
-        padding: 20px;
-    }
-
-    .container {
-        max-width: 600px;
-        margin: auto;
-    }
-
-    input, button {
-        padding: 12px;
-        width: 100%;
-        margin-top: 10px;
-        border-radius: 6px;
-        border: none;
-    }
-
-    button {
-        background: #2563eb;
-        color: white;
-        cursor: pointer;
-    }
-
-    button:hover {
-        background: #1d4ed8;
-    }
-
-    .box {
-        margin-top: 20px;
-        padding: 15px;
-        background: #111827;
-        border-radius: 10px;
-    }
-
-    .msg {
-        border-bottom: 1px solid #334155;
-        padding: 10px 0;
-    }
+body {
+  font-family: Arial;
+  background:#0b1220;
+  color:white;
+  padding:20px;
+}
+button,input {
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+}
+.box {
+  margin-top:20px;
+  background:#111827;
+  padding:15px;
+  border-radius:10px;
+}
 </style>
 </head>
 
 <body>
 
-<div class="container">
-    <h2>📩 Temporary Email Inbox</h2>
+<h2>📩 Sand Temp Mail</h2>
 
-    <!-- GENERATED EMAIL DISPLAY -->
-    <input id="email" placeholder="Your temp email will appear here" readonly>
+<input id="email" placeholder="Click generate email" readonly>
 
-    <button onclick="generateEmail()">Generate Email</button>
-    <button onclick="loadInbox()">Check Inbox</button>
+<button onclick="generateEmail()">Generate Email</button>
+<button onclick="loadInbox()">Check Inbox</button>
 
-    <div id="inbox" class="box">
-        <p>No messages loaded yet</p>
-    </div>
-</div>
+<div id="inbox" class="box">No messages yet</div>
 
 <script>
-// 1. GENERATE RANDOM TEMP EMAIL
-function generateEmail() {
-    const random = Math.random().toString(36).substring(2, 10);
-    const email = random + "@sandmail.dev";
 
-    document.getElementById("email").value = email;
+async function generateEmail() {
+  const res = await fetch("https://YOUR-VERCEL-APP.vercel.app/api/generate-email");
+  const data = await res.json();
 
-    localStorage.setItem("tempEmail", email);
-
-    document.getElementById("inbox").innerHTML =
-        "<p>✅ Email generated: " + email + "</p>";
+  document.getElementById("email").value = data.email;
 }
 
-// 2. AUTO LOAD SAVED EMAIL
-window.onload = () => {
-    const saved = localStorage.getItem("tempEmail");
-    if (saved) {
-        document.getElementById("email").value = saved;
-    }
-};
-
-// 3. LOAD INBOX
 async function loadInbox() {
-    const email = document.getElementById("email").value;
-    const inbox = document.getElementById("inbox");
+  const email = document.getElementById("email").value;
+  const inbox = document.getElementById("inbox");
 
-    if (!email) {
-        inbox.innerHTML = "<p style='color:red'>Generate an email first</p>";
-        return;
-    }
+  inbox.innerHTML = "Loading...";
 
-    inbox.innerHTML = "<p>Loading...</p>";
+  const res = await fetch(
+    "https://YOUR-VERCEL-APP.vercel.app/api/inbox?email=" + email
+  );
 
-    try {
-        const res = await fetch(
-            "https://verify-one-peach.vercel.app/api/inbox?email=" + encodeURIComponent(email)
-        );
+  const data = await res.json();
 
-        const data = await res.json();
+  if (!data.messages.length) {
+    inbox.innerHTML = "No messages found";
+    return;
+  }
 
-        if (!data.messages || data.messages.length === 0) {
-            inbox.innerHTML = "<p>No messages found</p>";
-            return;
-        }
-
-        let html = "<h3>Inbox</h3>";
-
-        data.messages.forEach(msg => {
-            html += `
-                <div class="msg">
-                    <b>From:</b> ${msg.from || "Unknown"} <br>
-                    <b>Subject:</b> ${msg.subject || "No subject"} <br>
-                    <p>${msg.text || ""}</p>
-                </div>
-            `;
-        });
-
-        inbox.innerHTML = html;
-
-    } catch (err) {
-        inbox.innerHTML = "<p style='color:red'>Error loading inbox</p>";
-    }
+  inbox.innerHTML = data.messages.map(m => `
+    <div style="border-bottom:1px solid #333;padding:10px">
+      <b>From:</b> ${m.from}<br>
+      <b>Subject:</b> ${m.subject}<br>
+      <p>${m.text}</p>
+    </div>
+  `).join("");
 }
+
 </script>
 
 </body>
