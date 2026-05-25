@@ -68,8 +68,10 @@ button:hover {
     padding: 10px 0;
 }
 
-.error {
-    color: #f87171;
+.status {
+    text-align: center;
+    margin-top: 10px;
+    color: #fbbf24;
 }
 </style>
 </head>
@@ -89,12 +91,15 @@ button:hover {
 
 <button onclick="loadInbox()">📬 Load Inbox</button>
 
+<div id="status" class="status">Idle</div>
+
 <div id="inbox" class="box">No emails yet</div>
 
 </div>
 
 <script>
 
+let currentEmail = "";
 let currentEncrypted = "";
 
 // ======================
@@ -103,7 +108,10 @@ let currentEncrypted = "";
 async function generateEmail() {
 
     const inbox = document.getElementById("inbox");
-    inbox.innerHTML = "Generating email...";
+    const status = document.getElementById("status");
+
+    status.innerText = "Generating email...";
+    inbox.innerHTML = "";
 
     try {
 
@@ -113,26 +121,31 @@ async function generateEmail() {
 
         const data = await res.json();
 
-        console.log("GENERATE RESPONSE:", data);
+        console.log("GENERATE:", data);
 
-        if (!data.email) {
-            inbox.innerHTML = `❌ ${data.error || "Failed to generate email"}`;
+        if (!data.email || !data.encrypted) {
+            status.innerText = "Failed to generate email";
+            inbox.innerHTML = "❌ Error creating inbox";
             return;
         }
 
-        // STORE ENCRYPTED TOKEN
+        currentEmail = data.email;
         currentEncrypted = data.encrypted;
 
-        // DISPLAY EMAIL
-        document.getElementById("email").value = data.email;
+        document.getElementById("email").value = currentEmail;
 
-        inbox.innerHTML = `✅ Email ready: ${data.email}`;
+        status.innerText = "Email ready";
 
-    } catch(err) {
+        inbox.innerHTML = `
+            <div class="msg">
+                ✅ Inbox created<br>
+                Waiting for incoming emails...
+            </div>
+        `;
 
+    } catch (err) {
         console.error(err);
-
-        inbox.innerHTML = "❌ Network error";
+        status.innerText = "Network error";
     }
 }
 
@@ -141,15 +154,12 @@ async function generateEmail() {
 // ======================
 function copyEmail() {
 
-    const email = document.getElementById("email").value;
-
-    if (!email) {
+    if (!currentEmail) {
         alert("Generate email first");
         return;
     }
 
-    navigator.clipboard.writeText(email);
-
+    navigator.clipboard.writeText(currentEmail);
     alert("Copied!");
 }
 
@@ -158,47 +168,65 @@ function copyEmail() {
 // ======================
 async function loadInbox() {
 
+    const inbox = document.getElementById("inbox");
+    const status = document.getElementById("status");
+
     if (!currentEncrypted) {
         alert("Generate email first");
         return;
     }
 
-    const inbox = document.getElementById("inbox");
-
-    inbox.innerHTML = "Loading inbox...";
+    status.innerText = "Checking inbox...";
 
     try {
 
-        // USE ENCRYPTED TOKEN
         const res = await fetch(
             `/api/inbox?encrypted=${encodeURIComponent(currentEncrypted)}`
         );
 
         const data = await res.json();
 
-        console.log("INBOX RESPONSE:", data);
+        console.log("INBOX:", data);
 
         if (!data.emails || data.emails.length === 0) {
-            inbox.innerHTML = "No emails found";
+            status.innerText = "No emails yet";
+            inbox.innerHTML = `
+                <div class="msg">
+                    📭 Inbox is empty<br>
+                    Waiting for emails...
+                </div>
+            `;
             return;
         }
+
+        status.innerText = "Emails received";
 
         inbox.innerHTML = data.emails.map(m => `
             <div class="msg">
                 <b>From:</b> ${m.from || "Unknown"}<br>
                 <b>Subject:</b> ${m.subject || "No Subject"}<br>
-                <div>${m.html || ""}</div>
+                <div>${m.html || m.text || ""}</div>
             </div>
         `).join("");
 
-    } catch(err) {
-
+    } catch (err) {
         console.error(err);
-
-        inbox.innerHTML = "❌ Failed loading inbox";
+        status.innerText = "Failed to load inbox";
     }
 }
 
+// ======================
+// 🔄 AUTO REFRESH
+// ======================
+setInterval(() => {
+
+    if (currentEncrypted) {
+        loadInbox();
+    }
+
+}, 8000);
+
 </script>
+
 </body>
 </html>
