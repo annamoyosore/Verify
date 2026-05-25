@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Temp Mail (SandMail v1)</title>
+<title>SandMail Temp Mail</title>
 
 <style>
 body {
@@ -11,7 +11,10 @@ body {
     color:white;
     padding:20px;
 }
-.container { max-width:600px; margin:auto; }
+.container {
+    max-width:600px;
+    margin:auto;
+}
 
 input, button {
     width:100%;
@@ -27,7 +30,9 @@ button {
     cursor:pointer;
 }
 
-button:hover { background:#1d4ed8; }
+button:hover {
+    background:#1d4ed8;
+}
 
 .box {
     margin-top:20px;
@@ -56,18 +61,18 @@ button:hover { background:#1d4ed8; }
 
 <div class="container">
 
-<h2>📩 SandMail Temp Inbox</h2>
+<h2>📩 SandMail Temp Mail (REAL-TIME READY)</h2>
 
-<input id="email" placeholder="Generate email first" readonly>
+<input id="email" placeholder="Generated email will appear here" readonly>
 
 <div class="row">
-<button onclick="generateEmail()">Generate Email</button>
-<button onclick="copyEmail()">Copy Email</button>
+<button onclick="generateEmail()">⚡ Generate Email</button>
+<button onclick="copyEmail()">📋 Copy</button>
 </div>
 
-<button onclick="loadInbox()">Load Inbox</button>
+<button onclick="loadInbox()">📬 Load Inbox</button>
 
-<div id="inbox" class="box">No messages yet</div>
+<div id="inbox" class="box">No emails yet</div>
 
 </div>
 
@@ -75,10 +80,10 @@ button:hover { background:#1d4ed8; }
 
 const BASE = "https://verify-one-peach.vercel.app";
 
-// 🔥 CREATE INBOX
+// ⚡ GENERATE EMAIL (Instant)
 async function generateEmail() {
     const inbox = document.getElementById("inbox");
-    inbox.innerHTML = "Generating...";
+    inbox.innerHTML = "Generating email...";
 
     try {
         const res = await fetch(`${BASE}/api/inbox`, {
@@ -91,27 +96,26 @@ async function generateEmail() {
 
         document.getElementById("email").value = data.email;
 
-        // store encrypted for future use
         localStorage.setItem("encrypted", data.encrypted);
 
-        inbox.innerHTML = "✅ Email generated";
+        inbox.innerHTML = `✅ Email ready: ${data.email}`;
 
     } catch (err) {
         console.error(err);
-        inbox.innerHTML = "❌ Failed to generate mail";
+        inbox.innerHTML = "❌ Failed to generate email";
     }
 }
 
 // 📋 COPY EMAIL
 function copyEmail() {
     const email = document.getElementById("email").value;
-    if (!email) return alert("No email");
+    if (!email) return alert("No email generated");
 
     navigator.clipboard.writeText(email);
     alert("Copied!");
 }
 
-// 📩 LOAD INBOX
+// 📬 LOAD INBOX
 async function loadInbox() {
     const email = document.getElementById("email").value;
     const inbox = document.getElementById("inbox");
@@ -125,7 +129,6 @@ async function loadInbox() {
 
     try {
         const res = await fetch(`${BASE}/api/inbox?email=${encodeURIComponent(email)}`);
-
         const data = await res.json();
 
         if (!data.emails || data.emails.length === 0) {
@@ -133,20 +136,15 @@ async function loadInbox() {
             return;
         }
 
-        let html = "<h3>Inbox</h3>";
-
-        data.emails.forEach(m => {
-            html += `
-                <div class="msg">
-                    <b>From:</b> ${m.from}<br>
-                    <b>Subject:</b> ${m.subject}<br>
-                    <b>Date:</b> ${m.date}<br>
-                    <div>${m.html || ""}</div>
-                </div>
-            `;
-        });
-
-        inbox.innerHTML = html;
+        inbox.innerHTML = "<h3>Inbox</h3>" +
+        data.emails.map(m => `
+            <div class="msg">
+                <b>From:</b> ${m.from}<br>
+                <b>Subject:</b> ${m.subject}<br>
+                <b>Date:</b> ${m.date || ""}<br>
+                <div>${m.html || ""}</div>
+            </div>
+        `).join("");
 
     } catch (err) {
         console.error(err);
