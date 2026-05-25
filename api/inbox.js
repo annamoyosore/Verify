@@ -5,28 +5,36 @@ export default async function handler(req, res) {
 
     if (!apiKey) {
         return res.status(500).json({
-            error: "Missing SANDMAIL_API_KEY in Vercel"
+            error: "Missing SANDMAIL_API_KEY in Vercel environment"
         });
     }
 
     try {
 
-        // ======================
-        // ⚡ CREATE EMAIL
-        // ======================
+        // =========================
+        // ⚡ CREATE INBOX (GENERATE EMAIL)
+        // =========================
         if (req.method === "POST") {
 
-            const response = await fetch(`${BASE}/inboxes`, {
+            const response = await fetch(`${BASE}/api/create`, {
                 method: "POST",
                 headers: {
-                    "Authorization": `Bearer ${apiKey}`,
+                    "X-API-Key": apiKey,
                     "Content-Type": "application/json"
-                },
-                body: JSON.stringify({})
+                }
             });
 
             const text = await response.text();
-            const data = JSON.parse(text);
+
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                return res.status(500).json({
+                    error: "Invalid JSON response from SandMail (create inbox)",
+                    raw: text
+                });
+            }
 
             if (!response.ok) {
                 return res.status(response.status).json({
@@ -42,9 +50,9 @@ export default async function handler(req, res) {
             });
         }
 
-        // ======================
-        // 📬 GET EMAILS
-        // ======================
+        // =========================
+        // 📬 GET INBOX EMAILS
+        // =========================
         const email = req.query.email;
 
         if (!email) {
@@ -54,16 +62,25 @@ export default async function handler(req, res) {
         }
 
         const response = await fetch(
-            `${BASE}/emails/${encodeURIComponent(email)}`,
+            `${BASE}/api/emails/${encodeURIComponent(email)}`,
             {
                 headers: {
-                    "Authorization": `Bearer ${apiKey}`
+                    "X-API-Key": apiKey
                 }
             }
         );
 
         const text = await response.text();
-        const data = JSON.parse(text);
+
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            return res.status(500).json({
+                error: "Invalid JSON response from SandMail (inbox)",
+                raw: text
+            });
+        }
 
         if (!response.ok) {
             return res.status(response.status).json({
@@ -78,7 +95,7 @@ export default async function handler(req, res) {
 
     } catch (err) {
         return res.status(500).json({
-            error: err.message
+            error: err.message || "Server error"
         });
     }
 }
