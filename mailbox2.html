@@ -156,7 +156,8 @@ placeholder="Paste your Flutterwave payment reference or proof here"></textarea>
 
 <p>
 <b>Admin Email:</b><br>
-chifarm@proton.me
+window.location.href =
+`mailto:chifarm@proton.me?subject=${subject}&body=${body}`;
 </p>
 
 <button onclick="requestToken()">
@@ -292,7 +293,7 @@ ZA:["+27821234567","+27821234568","+27821234569"]
 };
 
 function payNow(){
-window.open("https://flutterwave.com/pay/kqsgvbl9spjm);
+window.open("https://flutterwave.com/pay/kqsgvbl9spjm");
 }
 
 function requestToken(){
